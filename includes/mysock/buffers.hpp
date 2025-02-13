@@ -6,7 +6,7 @@
 #include "meta/helpers.hpp"
 
 namespace MyHttpd::MySock {
-    template <typename OctetT>
+    template <typename OctetT> requires (Meta::is_buffer_item_v<OctetT>)
     class BufferView {
     private:
         const OctetT* m_ptr;
@@ -67,8 +67,25 @@ namespace MyHttpd::MySock {
             return Limit;
         }
 
+        constexpr void markLength(std::size_t written_n) {
+            m_length = written_n;
+        }
+
         [[nodiscard]] constexpr std::size_t getLength() const noexcept {
             return m_length;
+        }
+
+        [[nodiscard]] constexpr OctetT* getPtr() & noexcept {
+            return m_data.data();
+        }
+
+        [[nodiscard]] constexpr const OctetT* getPtr() const& noexcept {
+            return m_data.data();
+        }
+
+        constexpr void reset() noexcept {
+            std::fill(m_data.begin(), m_data.end(), OctetT {});
+            m_length = 0UL;
         }
 
         [[nodiscard]] friend constexpr BufferView<OctetT> makeView(const FixedBuffer& buffer, std::size_t begin, std::size_t length) noexcept {
