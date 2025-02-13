@@ -88,12 +88,12 @@ namespace MyHttpd::MySock {
             m_length = 0UL;
         }
 
-        [[nodiscard]] friend constexpr BufferView<OctetT> makeView(const FixedBuffer& buffer, std::size_t begin, std::size_t length) noexcept {
-            if (begin + length > buffer.getLimit()) {
+        [[nodiscard]] constexpr BufferView<OctetT> makeView(std::size_t begin, std::size_t length) noexcept {
+            if (begin + length > getLimit()) {
                 return {};
             }
 
-            return {buffer.m_data.data() + begin, length};
+            return {m_data.data() + begin, length};
         }
     };
 }

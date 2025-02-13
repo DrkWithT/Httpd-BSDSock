@@ -1,12 +1,10 @@
 #pragma once
 
-// #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "meta/helpers.hpp"
 #include "mysock/buffers.hpp"
-#include "mysock/configure.hpp"
 
 namespace MyHttpd::MySock {
     enum class SockSetupStatus {
@@ -64,8 +62,6 @@ namespace MyHttpd::MySock {
 
         template <typename OctetT, std::size_t BufferN> requires (Meta::is_buffer_item_v<OctetT>)
         [[nodiscard]] SockIOStatus readLine(FixedBuffer<OctetT, BufferN>& target, OctetT delim) noexcept {
-            target.reset();
-
             auto residue_space = BufferN;
             auto read_n = 0UL;
             OctetT temp = OctetT {};
@@ -95,6 +91,7 @@ namespace MyHttpd::MySock {
             }
 
             if (not found_delim and not residue_space) {
+                target.reset();
                 return SockIOStatus::exhausted_buffer;
             }
 
@@ -106,8 +103,6 @@ namespace MyHttpd::MySock {
             if (blob_size > BufferN) {
                 return SockIOStatus::invalid_size;
             }
-
-            target.reset();
 
             auto pending_n = blob_size;
             auto done_n = 0UL;
