@@ -15,7 +15,15 @@ namespace MyHttpd::MyHttp {
         "NOP"
     };
 
-    static constexpr std::array<std::string_view, static_cast<std::size_t>(HttpStatus::last) + 1> statuses = {
+    static constexpr std::array<std::string_view, static_cast<std::size_t>(HttpStatus::last) + 1> status_codes = {
+        "200",
+        "400",
+        "404",
+        "500",
+        "501"
+    };
+
+    static constexpr std::array<std::string_view, static_cast<std::size_t>(HttpStatus::last) + 1> status_msgs = {
         "OK",
         "Bad Request",
         "Not Found",
@@ -44,7 +52,13 @@ namespace MyHttpd::MyHttp {
     std::string_view stringifyEnum(HttpStatus status) noexcept {
         const auto status_n = static_cast<std::size_t>(status);
 
-        return statuses[status_n];
+        return status_codes[status_n];
+    }
+
+    std::string_view stringifyToMsg(HttpStatus status) noexcept {
+        const auto status_msg_n = static_cast<std::size_t>(status);
+
+        return status_msgs[status_msg_n];
     }
 
     std::string_view stringifyEnum(MimeType mime) noexcept {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -44,7 +46,13 @@ namespace MyHttpd::MyHttp {
 
     [[nodiscard]] std::string_view stringifyEnum(HttpSchema schema) noexcept;
     [[nodiscard]] std::string_view stringifyEnum(HttpMethod method) noexcept;
+
+    /// @note Use for translating HTTP/1.x statuses to numerics.
     [[nodiscard]] std::string_view stringifyEnum(HttpStatus status) noexcept;
+
+    /// @note Use for translating HTTP/1.x statuses to messages.
+    [[nodiscard]] std::string_view stringifyToMsg(HttpStatus status) noexcept;
+
     [[nodiscard]] std::string_view stringifyEnum(MimeType mime) noexcept;
 
     [[nodiscard]] HttpSchema enumify(std::string_view s, [[maybe_unused]] SchemaOpt opt) noexcept;
@@ -52,6 +60,70 @@ namespace MyHttpd::MyHttp {
     [[nodiscard]] MimeType enumify(std::string_view s, [[maybe_unused]] MimeOpt opt) noexcept;
 
     using HeaderValue = std::variant<int, std::string>;
+
+    template <typename ItemT> requires (Meta::is_buffer_item_v<ItemT>)
+    class DynamicBlob {
+    private:
+        static constexpr auto growth_n = 2;
+
+        std::unique_ptr<ItemT[]> m_data;
+        std::size_t m_size;
+        std::size_t m_length;
+
+        [[nodiscard]] bool isFull() const noexcept {
+            return m_length >= m_size;
+        }
+
+        void pushItem(ItemT item) {
+            if (isFull()) {
+                expandData(m_size * growth_n);
+            }
+
+            m_data[m_length] = item;
+            ++m_length;
+        }
+
+        void expandData(std::size_t size_next) {
+            auto next_block = std::make_unique<ItemT[]>(size_next);
+            const ItemT* old_ptr = m_data.get();
+
+            std::copy(old_ptr, old_ptr + m_length, next_block.get());
+
+            m_data = std::move(next_block);
+            m_size = size_next;
+        }
+
+    public:
+        DynamicBlob(std::size_t size0, ItemT filler)
+        : m_data {std::make_unique<ItemT[]>(size0)}, m_size {size0}, m_length {0UL} {
+            std::fill(m_data.get(), m_data.get() + m_size, filler);
+        }
+
+        const ItemT* getReadingPtr() const noexcept {
+            return m_data.get();
+        }
+
+        [[nodiscard]] std::size_t getLength() const noexcept {
+            return m_length;
+        }
+
+        void append(const ItemT* raw_p) {
+            const ItemT* raw_it = raw_p;
+            const auto end_val = ItemT {};
+            ItemT temp;
+
+            while ((temp = *raw_it) != end_val) {
+                pushItem(temp);
+                raw_it++;
+            }
+        }
+
+        void append(const std::string& s) {
+            if (std::is_same_v<ItemT, Meta::ASCIIOctet>) {
+                append(s.c_str());
+            }
+        }
+    };
 
     struct Request {
         HttpMethod method;
@@ -61,11 +133,11 @@ namespace MyHttpd::MyHttp {
         std::unordered_map<std::string, HeaderValue> headers;
     };
 
-    struct Message {
+    struct Response {
         HttpStatus status;
         HttpSchema schema;
         std::string_view msg;
-        MySock::BufferView<Meta::ASCIIOctet> content_vw;
+        DynamicBlob<char> blob;
         std::unordered_map<std::string, HeaderValue> headers;
     };
 }
