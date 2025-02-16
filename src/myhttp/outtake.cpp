@@ -42,7 +42,7 @@ namespace MyHttpd::MyHttp {
             return false;
         }
 
-        std::copy(temp_line.cbegin(), temp_line.cend(), m_buffer.getPtr());
+        std::copy(temp_line.cbegin(), temp_line.cend(), m_buffer.getPtr() + m_buffer.getLength());
         m_buffer.markLength(expected_length);
 
         return true;

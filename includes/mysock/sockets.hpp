@@ -60,6 +60,8 @@ namespace MyHttpd::MySock {
         ClientSocket(ClientSocket&& x_other) noexcept;
         ClientSocket& operator=(ClientSocket&& x_other) noexcept;
 
+        [[nodiscard]] bool isReady() const noexcept;
+
         template <typename OctetT, std::size_t BufferN> requires (Meta::is_buffer_item_v<OctetT>)
         [[nodiscard]] SockIOStatus readLine(FixedBuffer<OctetT, BufferN>& target, OctetT delim) noexcept {
             auto residue_space = BufferN;

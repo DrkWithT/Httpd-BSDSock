@@ -129,4 +129,8 @@ namespace MyHttpd::MySock {
 
         return *this;
     }
+
+    bool ClientSocket::isReady() const noexcept {
+        return m_fd != dud_value;
+    }
 }
