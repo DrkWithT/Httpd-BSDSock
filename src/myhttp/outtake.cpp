@@ -1,4 +1,5 @@
 #include <format>
+#include <iostream>
 #include "myhttp/types.hpp"
 #include "myhttp/outtake.hpp"
 
@@ -60,6 +61,7 @@ namespace MyHttpd::MyHttp {
         std::copy(blob.getReadingPtr(), blob.getReadingPtr() + blob_size, m_buffer.getPtr());
         m_buffer.markLength(blob_size);
 
+        std::cout << "Loaded data:\n'" << m_buffer.getPtr() << "'\n";
         return true;
     }
 
@@ -102,6 +104,17 @@ namespace MyHttpd::MyHttp {
             }
         }
 
+        if (not serializeBlob(reply.blob)) {
+            m_buffer.reset();
+            return false;
+        }
+
+        if (sio_out.writeBlob(m_buffer) != MySock::SockIOStatus::ok) {
+            m_buffer.reset();
+            return false;
+        }
+
+        std::cout << "sendMessage: write OK\n";
         return true;
     }
 }

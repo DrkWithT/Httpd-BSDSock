@@ -105,8 +105,9 @@ namespace MyHttpd::MyHttp {
 
         template <std::same_as<std::string_view> T>
         DynamicBlob(T plain_text)
-        : m_data {std::make_unique<ItemT[]>(plain_text.length())}, m_size {plain_text.length()}, m_length {m_size} {
+        : m_data {std::make_unique<ItemT[]>(plain_text.length())}, m_size {plain_text.length()}, m_length {plain_text.length()} {
             std::copy(plain_text.begin(), plain_text.end(), m_data.get());
+            m_data[plain_text.length() - 1] = ItemT {};
         }
 
         const ItemT* getReadingPtr() const noexcept {

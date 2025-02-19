@@ -3,6 +3,9 @@
 #include "mysock/sockets.hpp"
 
 namespace MyHttpd::MySock {
+    static constexpr auto some_backlog = 4;
+    static constexpr auto bad_value = -1;
+
     SockSetupStatus ServerSocket::applyOptions(long listen_timeout) noexcept {
         if (m_fd == dud_value) {
             return SockSetupStatus::bad_fd;
@@ -24,7 +27,11 @@ namespace MyHttpd::MySock {
     : m_fd {dud_value}, m_ready {false} {}
 
     ServerSocket::ServerSocket(int fd, long listen_timeout) noexcept
-    : m_fd {fd}, m_ready {applyOptions(listen_timeout) == SockSetupStatus::ok} {}
+    : m_fd {fd}, m_ready {applyOptions(listen_timeout) == SockSetupStatus::ok} {
+        if (listen(m_fd, some_backlog) == bad_value) {
+            m_ready = false;
+        }
+    }
 
     ServerSocket::~ServerSocket() noexcept {
         if (m_fd != dud_value) {

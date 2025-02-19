@@ -4,6 +4,8 @@
 #include "myhttp/types.hpp"
 #include "mysock/sockets.hpp"
 
+/// TODO: add more robust logic to default Content-Length to 0 in its absence.
+
 namespace MyHttpd::MyHttp {
     static constexpr auto http_colon = ':';
     static constexpr auto http_lf = '\n';
@@ -78,7 +80,7 @@ namespace MyHttpd::MyHttp {
     }
 
     ReadStep HttpIntake::stateBody() noexcept {
-        const auto& content_length_val = m_temp_headers.at("Content-Type");
+        const auto& content_length_val = m_temp_headers.at("Content-Length");
         const auto content_length = std::get<int>(content_length_val);
 
         if (content_length == 0) {
@@ -102,7 +104,7 @@ namespace MyHttpd::MyHttp {
     ReadStep HttpIntake::stateTransferNormal(MySock::ClientSocket& sio_stream) noexcept {
         m_buffer.reset();
 
-        const auto& content_length_val = m_temp_headers.at("Content-Type");
+        const auto& content_length_val = m_temp_headers.at("Content-Length");
         const auto content_length = std::get<int>(content_length_val);
 
         const auto read_status = sio_stream.readBlob(m_buffer, content_length);

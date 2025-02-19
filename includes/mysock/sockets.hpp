@@ -103,7 +103,7 @@ namespace MyHttpd::MySock {
         }
 
         template <typename OctetT, std::size_t BufferN> requires (Meta::is_buffer_item_v<OctetT>)
-        [[nodiscard]] SockIOStatus readBlob(const FixedBuffer<OctetT, BufferN>& target, std::size_t blob_size) noexcept {
+        [[nodiscard]] SockIOStatus readBlob(FixedBuffer<OctetT, BufferN>& target, std::size_t blob_size) noexcept {
             if (blob_size > BufferN) {
                 return SockIOStatus::invalid_size;
             }
@@ -131,7 +131,7 @@ namespace MyHttpd::MySock {
         }
 
         template <typename OctetT, std::size_t BufferN>
-        [[nodiscard]] SockIOStatus writeBlob(const FixedBuffer<OctetT, BufferN>& source) noexcept {
+        [[nodiscard]] SockIOStatus writeBlob(FixedBuffer<OctetT, BufferN>& source) noexcept {
             auto pending_n = source.getLength();
 
             if (pending_n == 0UL) {
@@ -171,7 +171,6 @@ namespace MyHttpd::MySock {
 
                 if (temp_n <= 0L) {
                     m_closed = true;
-                    source.reset();
                     return SockIOStatus::closed_pipe;
                 }
 

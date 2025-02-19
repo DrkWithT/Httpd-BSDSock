@@ -75,11 +75,11 @@ namespace MyHttpd::MySock {
             return m_length;
         }
 
-        [[nodiscard]] constexpr OctetT* getPtr() & noexcept {
+        [[nodiscard]] inline OctetT* getPtr() & noexcept {
             return m_data.data();
         }
 
-        [[nodiscard]] constexpr const OctetT* getPtr() const& noexcept {
+        [[nodiscard]] inline const OctetT* getPtr() const& noexcept {
             return m_data.data();
         }
 
