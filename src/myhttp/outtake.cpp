@@ -26,7 +26,21 @@ namespace MyHttpd::MyHttp {
         return true;
     }
 
-    [[nodiscard]] bool HttpOuttake::serializeHeaderInfo(const std::string& key, const HeaderValue& value) noexcept {
+    bool HttpOuttake::serializeEmptyBreak() noexcept {
+        const auto expected_length = m_buffer.getLength() + 2UL;
+
+        if (expected_length > m_buffer.getLimit()) {
+            return false;
+        }
+
+        m_buffer.getPtr()[expected_length - 1] = '\n';
+        m_buffer.getPtr()[expected_length - 2] = '\r';
+        m_buffer.markLength(expected_length);
+
+        return true;
+    }
+
+    bool HttpOuttake::serializeHeaderInfo(const std::string& key, const HeaderValue& value) noexcept {
         std::string temp_line;
 
         if (const auto value_index = value.index(); value_index == header_int_v) {
@@ -34,7 +48,7 @@ namespace MyHttpd::MyHttp {
             temp_line = std::format("{}: {}\r\n", key, header_int);
         } else {
             const auto header_str = std::get<std::string>(value);
-            temp_line = std::format("{} : {}\r\n", key, header_str);
+            temp_line = std::format("{}: {}\r\n", key, header_str);
         }
 
         const auto expected_length = temp_line.size() + m_buffer.getLength();
@@ -49,7 +63,7 @@ namespace MyHttpd::MyHttp {
         return true;
     }
 
-    [[nodiscard]] bool HttpOuttake::serializeBlob(const DynamicBlob<Meta::ASCIIOctet>& blob) noexcept {
+    bool HttpOuttake::serializeBlob(const DynamicBlob<Meta::ASCIIOctet>& blob) noexcept {
         m_buffer.reset();
 
         const auto blob_size = blob.getLength();
@@ -104,12 +118,20 @@ namespace MyHttpd::MyHttp {
             }
         }
 
+        if (not serializeEmptyBreak()) {
+            std::cerr << "write failed for blank line...\n";
+            m_buffer.reset();
+            return false;
+        }
+
         if (not serializeBlob(reply.blob)) {
+            std::cerr << "load failed for body...\n";
             m_buffer.reset();
             return false;
         }
 
         if (sio_out.writeBlob(m_buffer) != MySock::SockIOStatus::ok) {
+            std::cerr << "write failed for body...\n";
             m_buffer.reset();
             return false;
         }

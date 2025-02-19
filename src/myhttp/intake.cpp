@@ -124,8 +124,17 @@ namespace MyHttpd::MyHttp {
 
     HttpIntake::HttpIntake()
     : m_buffer {}, m_header_stream {}, m_temp_headers {}, m_temp_uri {}, m_temp_method {}, m_temp_schema {}, m_state {ReadState::top} {
+        reset();
+    }
+
+    void HttpIntake::reset() {
+        m_state = ReadState::top;
+        m_temp_headers.clear();
         m_temp_headers["Content-Type"] = "*/*";
         m_temp_headers["Content-Length"] = 0;
+        m_temp_uri.clear();
+        m_temp_method = MyHttp::HttpMethod::h1_nop;
+        m_temp_schema = MyHttp::HttpSchema::http_unknown;
     }
 
     std::optional<Request> HttpIntake::nextRequest(MySock::ClientSocket& socket) noexcept {

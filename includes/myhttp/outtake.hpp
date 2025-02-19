@@ -12,6 +12,7 @@ namespace MyHttpd::MyHttp {
         MySock::FixedBuffer<Meta::ASCIIOctet, buffer_size> m_buffer;
 
         [[nodiscard]] bool serializeTop(HttpSchema schema, HttpStatus status) noexcept;
+        [[nodiscard]] bool serializeEmptyBreak() noexcept;
         [[nodiscard]] bool serializeHeaderInfo(const std::string& key, const HeaderValue& value) noexcept;
         [[nodiscard]] bool serializeBlob(const DynamicBlob<Meta::ASCIIOctet>& blob) noexcept;
 

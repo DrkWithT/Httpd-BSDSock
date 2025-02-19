@@ -54,17 +54,17 @@ namespace MyHttpd::MyHttp {
 
         ReadState m_state;
 
-        void reset() noexcept;
-
+        
         [[nodiscard]] ReadStep stateTop(MySock::ClientSocket& sio_stream) noexcept;
         [[nodiscard]] ReadStep stateHeader(MySock::ClientSocket& sio_stream) noexcept;
         [[nodiscard]] ReadStep stateBody() noexcept;
         [[nodiscard]] ReadStep stateTransferNormal(MySock::ClientSocket& sio_stream) noexcept;
         // [[nodiscard]] ReaderMetaData stateTransferChunked(MySock::ClientSocket& sio_stream) noexcept;
-
-    public:
+        
+        public:
         HttpIntake();
-
+        
         [[nodiscard]] std::optional<Request> nextRequest(MySock::ClientSocket& socket) noexcept;
+        void reset();
     };
 }

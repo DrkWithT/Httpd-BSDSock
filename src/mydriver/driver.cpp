@@ -78,6 +78,7 @@ namespace MyHttpd::MyDriver {
                 break;
             case WorkState::halt:
             default:
+                stateHalt();
                 break;
             }
         }
@@ -121,17 +122,22 @@ namespace MyHttpd::MyDriver {
             return;
         }
 
+        std::print(std::cout, "[myhttpd LOG]: accepting connection...\n");
         m_connection = {incoming.value(), custom_timeout};
-        m_state = transitionWith(m_state, m_conn_persist_flag);
+        transitionAnyway(WorkState::request);
     }
 
     MyHttp::Request ServerDriver::stateRequest() {
         auto maybe_req = m_intake.nextRequest(m_connection);
+        m_intake.reset();
 
         if (not maybe_req.has_value()) {
             transitionAnyway(WorkState::error);
             return {};
         }
+
+        std::print(std::cout, "[myhttpd LOG]: got request...\n");
+        transitionAnyway(WorkState::validate);
 
         return maybe_req.value();
     }
@@ -158,24 +164,34 @@ namespace MyHttpd::MyDriver {
             return;
         }
 
+        std::print(std::cout, "[myhttpd LOG]: validated request...\n");
         transitionAnyway(WorkState::handle_good);
     }
 
     MyHttp::Response ServerDriver::stateHandleGood(const MyHttp::Request& temp, Utilities::GMTGen& gmt_utility) {
-        if (temp.uri != "/") {
+        if (temp.uri != "/" or temp.method != MyHttp::HttpMethod::h1_get) {
             m_check = RequestCheck::has_invalid_uri;
             transitionAnyway(WorkState::handle_bad);
             return {};
         }
 
+        const char* connect_directive = (m_conn_persist_flag == Persistence::yes)
+            ? "keep-alive"
+            : "close";
+
+        std::print(std::cout, "[myhttpd LOG]: handled good case...\n");
+        transitionAnyway(WorkState::reply);
+
         return {
-            .status = MyHttp::HttpStatus::ok,
-            .schema = temp.schema,
-            .msg = MyHttp::stringifyToMsg(MyHttp::HttpStatus::ok),
-            .blob = dud_content,
-            .headers = {
+            MyHttp::HttpStatus::ok,
+            temp.schema,
+            MyHttp::stringifyToMsg(MyHttp::HttpStatus::ok),
+            {dud_content},
+            {
                 {"Server", server_name},
+                {"Content-Type", "text/html"},
                 {"Content-Length", static_cast<int>(dud_content.length())},
+                {"Connection", connect_directive},
                 {"Date", gmt_utility()}
             }
         };
@@ -196,6 +212,12 @@ namespace MyHttpd::MyDriver {
         }
 
         status_msg = MyHttp::stringifyToMsg(status_code);
+        const char* connect_directive = (m_conn_persist_flag == Persistence::yes)
+            ? "keep-alive"
+            : "close";
+
+        std::print(std::cout, "[myhttpd LOG]: handled bad case...\n");
+        transitionAnyway(WorkState::reply);
 
         return {
             .status = status_code,
@@ -204,6 +226,8 @@ namespace MyHttpd::MyDriver {
             .blob = {},
             .headers = {
                 {"Server", server_name},
+                {"Connection", connect_directive},
+                {"Content-Type", "*/*"},
                 {"Content-Length", 0},
                 {"Date", gmt_utility()}
             }
@@ -212,10 +236,12 @@ namespace MyHttpd::MyDriver {
 
     void ServerDriver::stateReply(const MyHttp::Response& temp) {
         if (not m_outtake.sendMessage(temp, m_connection)) {
+            std::print(std::cout, "[myhttpd LOG]: send failed...\n");
             transitionAnyway(WorkState::error);
             return;
         }
 
+        std::print(std::cout, "[myhttpd LOG]: did reply...\n");
         m_state = transitionWith(m_state, m_conn_persist_flag);
     }
 
@@ -223,7 +249,8 @@ namespace MyHttpd::MyDriver {
         m_connection = {};
         m_conn_persist_flag = Persistence::unknown;
 
-        m_state = transitionWith(m_state, m_conn_persist_flag);
+        std::print(std::cout, "[myhttpd LOG]: connection resetting...\n");
+        transitionAnyway(WorkState::request);
     }
 
     void ServerDriver::stateError() {
