@@ -10,6 +10,7 @@ namespace MyHttpd::MyHttp {
     };
 
     static constexpr std::array<std::string_view, static_cast<std::size_t>(HttpMethod::last) + 1> methods = {
+        "HEAD",
         "GET",
         "POST",
         "NOP"

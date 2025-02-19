@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <variant>
 #include "meta/helpers.hpp"
@@ -17,7 +18,7 @@ namespace MyHttpd::MyHttp {
     };
 
     enum class HttpMethod {
-        // h1_head,
+        h1_head,
         h1_get,
         h1_post,
         h1_nop,
@@ -94,9 +95,18 @@ namespace MyHttpd::MyHttp {
         }
 
     public:
+        DynamicBlob()
+        : m_data {std::make_unique<ItemT[]>(64UL)}, m_size {64UL}, m_length {0UL} {}
+
         DynamicBlob(std::size_t size0, ItemT filler)
         : m_data {std::make_unique<ItemT[]>(size0)}, m_size {size0}, m_length {0UL} {
             std::fill(m_data.get(), m_data.get() + m_size, filler);
+        }
+
+        template <std::same_as<std::string_view> T>
+        DynamicBlob(T plain_text)
+        : m_data {std::make_unique<ItemT[]>(plain_text.length())}, m_size {plain_text.length()}, m_length {m_size} {
+            std::copy(plain_text.begin(), plain_text.end(), m_data.get());
         }
 
         const ItemT* getReadingPtr() const noexcept {
