@@ -1,5 +1,6 @@
 #include <iostream>
 #include <print>
+#include <array>
 #include <utility>
 #include <thread>
 #include "mydriver/driver.hpp"
@@ -8,6 +9,18 @@ namespace MyHttpd::MyDriver {
     static constexpr auto custom_timeout = 10L;
     static constexpr const char* server_name = "myhttpd/0.1-dev";
     static constexpr std::string_view dud_content {"<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head><body><p>Hello World!</p></body></html>"};
+
+    static constexpr std::array<std::string_view, static_cast<std::size_t>(ExitCode::last) + 1> exit_msgs = {
+        "OK!",
+        "Bad socket setup!",
+        "I/O error!",
+        "Server logic error!"
+    };
+
+    std::string_view fetchExitCodeMsg(ExitCode code) noexcept {
+        const auto exit_n = static_cast<int>(code);
+        return exit_msgs[exit_n];
+    }
 
     ServerDriver::ServerDriver(MySock::ServerSocket socket)
     : m_intake {}, m_outtake {}, m_entry {std::move(socket)}, m_connection {}, m_state {WorkState::connect}, m_conn_persist_flag {Persistence::unknown}, m_check {RequestCheck::ok}, m_exit_code {ExitCode::ok}, m_no_quit {true} {}

@@ -18,7 +18,7 @@ namespace MyHttpd::MySock {
         std::optional<SockFD> operator()() noexcept;
 
         /// @note "factory" function: checks ctor arguments before attempted creation...
-        friend SocketGenerator makeSelf(std::string_view port_sv) noexcept;
+        static SocketGenerator makeSelf(std::string_view port_sv) noexcept;
 
     private:
         SocketGenerator();

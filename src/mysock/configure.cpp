@@ -37,7 +37,7 @@ namespace MyHttpd::MySock {
     }
 
     /// NOTE: For SocketGenerator, and a C-string literal must be passed to `hints.port_sv`!
-    [[nodiscard]] SocketGenerator makeSelf(std::string_view port_sv) noexcept {
+    [[nodiscard]] SocketGenerator SocketGenerator::makeSelf(std::string_view port_sv) noexcept {
         if (port_sv.empty()) {
             return {};
         }

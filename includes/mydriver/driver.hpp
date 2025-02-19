@@ -38,8 +38,11 @@ namespace MyHttpd::MyDriver {
         ok,
         bad_setup,
         bad_sio,
-        bad_general
+        bad_general,
+        last = bad_general
     };
+
+    [[nodiscard]] std::string_view fetchExitCodeMsg(ExitCode code) noexcept;
 
     class ServerDriver {
     public:
