@@ -62,6 +62,10 @@ namespace MyHttpd::MySock {
         return *this;
     }
 
+    bool ServerSocket::isReady() const noexcept {
+        return m_fd != dud_value;
+    }
+
     std::optional<int> ServerSocket::acceptConnection() noexcept {
         if (not m_ready) {
             return {};

@@ -38,6 +38,7 @@ namespace MyHttpd::MySock {
         ServerSocket(ServerSocket&& x_other) noexcept;
         ServerSocket& operator=(ServerSocket&& x_other) noexcept;
 
+        [[nodiscard]] bool isReady() const noexcept;
         [[nodiscard]] std::optional<int> acceptConnection() noexcept;
     };
 
@@ -97,6 +98,7 @@ namespace MyHttpd::MySock {
                 return SockIOStatus::exhausted_buffer;
             }
 
+            target.markLength(read_n);
             return SockIOStatus::ok;
         }
 
@@ -124,6 +126,7 @@ namespace MyHttpd::MySock {
                 pending_n -= temp_n;
             }
 
+            target.markLength(done_n);
             return (pending_n == 0UL) ? SockIOStatus::ok : SockIOStatus::closed_pipe;
         }
 
