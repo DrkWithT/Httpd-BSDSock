@@ -93,7 +93,7 @@ namespace MyHttpd::MySock {
                 --residue_space;
             }
 
-            if (not found_delim and not residue_space) {
+            if (not found_delim and residue_space < 1UL) {
                 target.reset();
                 return SockIOStatus::exhausted_buffer;
             }
@@ -133,10 +133,6 @@ namespace MyHttpd::MySock {
         template <typename OctetT, std::size_t BufferN>
         [[nodiscard]] SockIOStatus writeBlob(FixedBuffer<OctetT, BufferN>& source) noexcept {
             auto pending_n = source.getLength();
-
-            if (pending_n == 0UL) {
-                return SockIOStatus::invalid_size;
-            }
 
             auto done_n = 0UL;
 

@@ -16,8 +16,7 @@ namespace MyHttpd::MyDriver {
         handle_bad,    // prepare HTTP <err> reply
         reply,    // try sending reply
         reset,    // close client connection
-        error,    // handle error and go to quit
-        halt      // quit
+        error     // handle error and go to quit
     };
 
     enum class Persistence : unsigned char {
@@ -62,7 +61,6 @@ namespace MyHttpd::MyDriver {
         void stateReply(const MyHttp::Response& temp);
         void stateReset();
         void stateError();
-        void stateHalt();
 
         MyHttp::HttpIntake m_intake;
         MyHttp::HttpOuttake m_outtake;

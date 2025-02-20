@@ -1,5 +1,5 @@
 #include <format>
-#include <iostream>
+// #include <iostream>
 #include "myhttp/types.hpp"
 #include "myhttp/outtake.hpp"
 
@@ -64,18 +64,19 @@ namespace MyHttpd::MyHttp {
     }
 
     bool HttpOuttake::serializeBlob(const DynamicBlob<Meta::ASCIIOctet>& blob) noexcept {
-        m_buffer.reset();
-
         const auto blob_size = blob.getLength();
 
         if (blob_size > m_buffer.getLimit()) {
             return false;
         }
 
+        if (blob_size == 0) {
+            return true;
+        }
+
         std::copy(blob.getReadingPtr(), blob.getReadingPtr() + blob_size, m_buffer.getPtr());
         m_buffer.markLength(blob_size);
 
-        std::cout << "Loaded data:\n'" << m_buffer.getPtr() << "'\n";
         return true;
     }
 
@@ -111,6 +112,11 @@ namespace MyHttpd::MyHttp {
             }
         }
 
+        if (not serializeEmptyBreak()) {
+            m_buffer.reset();
+            return false;
+        }
+
         if (not written_yet) {
             if (sio_out.writeBlob(m_buffer, m_buffer.getLength()) != MySock::SockIOStatus::ok) {
                 m_buffer.reset();
@@ -118,25 +124,18 @@ namespace MyHttpd::MyHttp {
             }
         }
 
-        if (not serializeEmptyBreak()) {
-            std::cerr << "write failed for blank line...\n";
-            m_buffer.reset();
-            return false;
-        }
+        m_buffer.reset();
 
         if (not serializeBlob(reply.blob)) {
-            std::cerr << "load failed for body...\n";
             m_buffer.reset();
             return false;
         }
 
         if (sio_out.writeBlob(m_buffer) != MySock::SockIOStatus::ok) {
-            std::cerr << "write failed for body...\n";
             m_buffer.reset();
             return false;
         }
 
-        std::cout << "sendMessage: write OK\n";
         return true;
     }
 }

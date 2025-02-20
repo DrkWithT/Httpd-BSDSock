@@ -5,3 +5,4 @@ build/
 
 CMakeUserPresets.json
 compile_commands.json
+demo_1.sh

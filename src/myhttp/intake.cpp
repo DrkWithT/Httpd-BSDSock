@@ -1,10 +1,9 @@
+// #include <iostream>
 #include <string>
 #include <utility>
 #include "myhttp/intake.hpp"
 #include "myhttp/types.hpp"
 #include "mysock/sockets.hpp"
-
-/// TODO: add more robust logic to default Content-Length to 0 in its absence.
 
 namespace MyHttpd::MyHttp {
     static constexpr auto http_colon = ':';
@@ -128,6 +127,7 @@ namespace MyHttpd::MyHttp {
     }
 
     void HttpIntake::reset() {
+        m_buffer.reset();
         m_state = ReadState::top;
         m_temp_headers.clear();
         m_temp_headers["Content-Type"] = "*/*";
@@ -142,6 +142,7 @@ namespace MyHttpd::MyHttp {
         bool had_fatal_error = false;
 
         while (m_state != ReadState::done) {
+            // std::cout << "HttpIntake::nextRequest: m_state=" << static_cast<int>(m_state) << '\n';
             switch (m_state) {
             case ReadState::top:
                 step = stateTop(socket);
@@ -175,7 +176,6 @@ namespace MyHttpd::MyHttp {
                     return {};
                 }
 
-                had_fatal_error = false;
                 m_state = ReadState::done;
             }
         }

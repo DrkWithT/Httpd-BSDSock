@@ -42,6 +42,7 @@ namespace MyHttpd::MyDriver {
             std::cout << "Stopping, please wait...\n";
 
             m_no_quit.clear();
+            m_entry = {};
         };
 
         std::thread prompt_thrd {prompt_stop};
@@ -50,7 +51,7 @@ namespace MyHttpd::MyDriver {
         MyHttp::Request temp_req;
         MyHttp::Response temp_res;
 
-        while (m_no_quit.test() and m_state != WorkState::halt) {
+        while (m_no_quit.test()) {
             switch (m_state) {
             case WorkState::connect:
                 stateConnect();
@@ -76,9 +77,7 @@ namespace MyHttpd::MyDriver {
             case WorkState::error:
                 stateError();
                 break;
-            case WorkState::halt:
             default:
-                stateHalt();
                 break;
             }
         }
@@ -107,11 +106,9 @@ namespace MyHttpd::MyDriver {
             return (persist == Persistence::yes) ? WorkState::request : WorkState::reset;
         } else if (state == WorkState::reset) {
             return WorkState::request;
-        } else if (state == WorkState::error) {
-            return WorkState::halt;
-        } else {
-            return WorkState::halt;
         }
+
+        return WorkState::connect;
     }
 
     void ServerDriver::stateConnect() {
@@ -122,21 +119,19 @@ namespace MyHttpd::MyDriver {
             return;
         }
 
-        std::print(std::cout, "[myhttpd LOG]: accepting connection...\n");
         m_connection = {incoming.value(), custom_timeout};
         transitionAnyway(WorkState::request);
     }
 
     MyHttp::Request ServerDriver::stateRequest() {
-        auto maybe_req = m_intake.nextRequest(m_connection);
         m_intake.reset();
+        auto maybe_req = m_intake.nextRequest(m_connection);
 
         if (not maybe_req.has_value()) {
             transitionAnyway(WorkState::error);
             return {};
         }
 
-        std::print(std::cout, "[myhttpd LOG]: got request...\n");
         transitionAnyway(WorkState::validate);
 
         return maybe_req.value();
@@ -145,7 +140,7 @@ namespace MyHttpd::MyDriver {
     void ServerDriver::stateValidate(const MyHttp::Request& temp) {
         const auto connection_closable = (temp.headers.contains("Connection"))
             ? (std::get<std::string>(temp.headers.at("Connection")) == "close")
-            : temp.schema != MyHttp::HttpSchema::http_1_1;
+            : temp.schema == MyHttp::HttpSchema::http_1_0;
 
         m_conn_persist_flag = (connection_closable)
             ? Persistence::no
@@ -164,7 +159,6 @@ namespace MyHttpd::MyDriver {
             return;
         }
 
-        std::print(std::cout, "[myhttpd LOG]: validated request...\n");
         transitionAnyway(WorkState::handle_good);
     }
 
@@ -175,25 +169,25 @@ namespace MyHttpd::MyDriver {
             return {};
         }
 
-        const char* connect_directive = (m_conn_persist_flag == Persistence::yes)
-            ? "keep-alive"
-            : "close";
-
-        std::print(std::cout, "[myhttpd LOG]: handled good case...\n");
         transitionAnyway(WorkState::reply);
+
+        std::unordered_map<std::string, MyHttp::HeaderValue> headers {
+            {"Server", server_name},
+            {"Content-Type", "text/html"},
+            {"Content-Length", static_cast<int>(dud_content.length())},
+            {"Date", gmt_utility()}
+        };
+
+        if (m_conn_persist_flag == Persistence::no) {
+            headers["Connection"] = "close";
+        }
 
         return {
             MyHttp::HttpStatus::ok,
             temp.schema,
             MyHttp::stringifyToMsg(MyHttp::HttpStatus::ok),
             {dud_content},
-            {
-                {"Server", server_name},
-                {"Content-Type", "text/html"},
-                {"Content-Length", static_cast<int>(dud_content.length())},
-                {"Connection", connect_directive},
-                {"Date", gmt_utility()}
-            }
+            std::move(headers)
         };
     }
 
@@ -216,7 +210,6 @@ namespace MyHttpd::MyDriver {
             ? "keep-alive"
             : "close";
 
-        std::print(std::cout, "[myhttpd LOG]: handled bad case...\n");
         transitionAnyway(WorkState::reply);
 
         return {
@@ -236,12 +229,10 @@ namespace MyHttpd::MyDriver {
 
     void ServerDriver::stateReply(const MyHttp::Response& temp) {
         if (not m_outtake.sendMessage(temp, m_connection)) {
-            std::print(std::cout, "[myhttpd LOG]: send failed...\n");
             transitionAnyway(WorkState::error);
             return;
         }
 
-        std::print(std::cout, "[myhttpd LOG]: did reply...\n");
         m_state = transitionWith(m_state, m_conn_persist_flag);
     }
 
@@ -249,18 +240,13 @@ namespace MyHttpd::MyDriver {
         m_connection = {};
         m_conn_persist_flag = Persistence::unknown;
 
-        std::print(std::cout, "[myhttpd LOG]: connection resetting...\n");
         transitionAnyway(WorkState::request);
     }
 
     void ServerDriver::stateError() {
-        std::print(std::cerr, "\033[1;31m[myhttpd ERROR]: {}\033[0m", "Internal server error of a networking I/O failure.\n");
+        std::print(std::cerr, "\033[1;31m[{} SOCKET-ERROR]: {}\033[0m", server_name, "networking I/O failure.\n");
 
-        m_state = transitionWith(m_state, Persistence::no);
-    }
-
-    void ServerDriver::stateHalt() {
-        std::print(std::cout, "[myhttpd LOG]: Reached halt state, stopping.\n");
+        transitionAnyway(WorkState::connect);
     }
 
 }
