@@ -13,17 +13,19 @@
 #include "mysock/configure.hpp"
 #include "mydriver/driver.hpp"
 
-static constexpr auto minimum_argc = 3;
+constexpr auto minimum_argc = 4;
 
 int main(int argc, char* argv[]) {
     using namespace MyHttpd;
 
     if (argc < minimum_argc) {
-        std::print(std::cerr, "Error: invalid argc of {}\n\tusage: ./myhttpd <port> <timeout>\n", argc);
+        std::print(std::cerr, "Error: invalid argc of {}\n\tusage: ./myhttpd <port> <workers> <client-timeout>\n", argc);
         return 1;
     }
 
     auto socket_gen = MySock::SocketGenerator::makeSelf(argv[1]);
+    const auto worker_count = std::stoi(argv[2]);
+    const long client_timeout = std::stol(argv[3]);
 
     auto make_socket = [&socket_gen] [[nodiscard]] (long io_timeout) {
         while (socket_gen) {
@@ -37,9 +39,9 @@ int main(int argc, char* argv[]) {
         return MySock::ServerSocket {};
     };
 
-    MyDriver::ServerDriver app {make_socket(std::atol(argv[2]))};
+    MyDriver::ServerDriver app {{worker_count}};
 
-    if (auto serve_status = app.runService(); serve_status != MyDriver::ExitCode::ok) {
-        std::print(std::cerr, "Big Error: {}\n", fetchExitCodeMsg(serve_status));
+    if (not app.runService(make_socket(client_timeout))) {
+        return 1;
     }
 }
