@@ -1,75 +1,24 @@
 #pragma once
 
-#include <atomic>
+#include <condition_variable>
 #include "mysock/sockets.hpp"
-#include "myhttp/types.hpp"
-#include "myhttp/intake.hpp"
-#include "myhttp/outtake.hpp"
-#include "utilities/mycaching.hpp"
+#include "mydriver/task_queue.hpp"
 
 namespace MyHttpd::MyDriver {
-    enum class WorkState : unsigned char {
-        connect,  // accept client connection
-        request,  // try reading HTTP request
-        validate, // check HTTP request for semantic / sizing errors
-        handle_good,   // prepare HTTP OK reply
-        handle_bad,    // prepare HTTP <err> reply
-        reply,    // try sending reply
-        reset,    // close client connection
-        error     // handle error and go to quit
+    struct ServerConfig {
+        int workers;
     };
-
-    enum class Persistence : unsigned char {
-        yes,
-        no,
-        unknown
-    };
-
-    enum class RequestCheck {
-        ok,                  // no validation errors
-        malformed_top_line,  // status 400
-        missing_header,      // status 400 
-        has_invalid_uri,     // URI has no handler
-        has_other_error      // any other processing error
-    };
-
-    enum class ExitCode : unsigned char {
-        ok,
-        bad_setup,
-        bad_sio,
-        bad_general,
-        last = bad_general
-    };
-
-    [[nodiscard]] std::string_view fetchExitCodeMsg(ExitCode code) noexcept;
 
     class ServerDriver {
     public:
-        ServerDriver(MySock::ServerSocket socket);
+        ServerDriver(ServerConfig config);
 
-        [[nodiscard]] ExitCode runService();
+        [[nodiscard]] bool runService(MySock::ServerSocket socket);
 
     private:
-        void transitionAnyway(WorkState next) noexcept;
-        [[nodiscard]] WorkState transitionWith(WorkState state, Persistence persist) const noexcept;
-
-        void stateConnect();
-        [[nodiscard]] MyHttp::Request stateRequest();
-        void stateValidate(const MyHttp::Request& temp);
-        [[nodiscard]] MyHttp::Response stateHandleGood(const MyHttp::Request& temp, Utilities::GMTGen& gmt_utility);
-        [[nodiscard]] MyHttp::Response stateHandleBad(const MyHttp::Request& temp, Utilities::GMTGen& gmt_utility);
-        void stateReply(const MyHttp::Response& temp);
-        void stateReset();
-        void stateError();
-
-        MyHttp::HttpIntake m_intake;
-        MyHttp::HttpOuttake m_outtake;
-        MySock::ServerSocket m_entry;
-        MySock::ClientSocket m_connection;
-        WorkState m_state;
-        Persistence m_conn_persist_flag;
-        RequestCheck m_check;
-        ExitCode m_exit_code;
-        std::atomic_flag m_no_quit;
+        MyDriver::TaskQueue m_tasks;
+        std::mutex m_cv_mtx;
+        std::condition_variable m_task_cv;
+        int m_worker_n;
     };
 }
