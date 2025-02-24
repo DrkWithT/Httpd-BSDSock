@@ -20,7 +20,7 @@ namespace MyHttpd::MyDriver {
         template <typename T> requires (std::is_same_v<std::remove_reference_t<T>, Task>)
         void addTask(T&& arg, std::condition_variable& signaling_cv) {
             {
-                std::unique_lock<std::mutex> add_lock {m_mtx};
+                std::lock_guard<std::mutex> add_lock {m_mtx};
 
                 m_items.push(arg);
             }

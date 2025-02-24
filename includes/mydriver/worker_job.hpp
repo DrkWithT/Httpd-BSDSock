@@ -41,6 +41,8 @@ namespace MyHttpd::MyDriver {
         /// @note Only pass a terminated C-string literal through `server_name`!
         WorkerJob(int wid, std::string_view server_name);
 
+        [[nodiscard]] int getID() const noexcept;
+
         void operator()(TaskQueue& tasks, std::condition_variable& task_cv, std::mutex& cv_mtx);
 
     private:

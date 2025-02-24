@@ -8,12 +8,11 @@ namespace MyHttpd::MyDriver {
     : m_mtx {}, m_items {} {}
 
     std::size_t TaskQueue::getCount() noexcept {
-        std::unique_lock<std::mutex> read_count_lock {m_mtx};
         return m_items.size(); 
     }
 
     Task TaskQueue::getTask() {
-        std::unique_lock<std::mutex> pop_lock {m_mtx};
+        std::unique_lock pop_lock {m_mtx};
 
         if (m_items.size() == empty_count) {
             return Task {

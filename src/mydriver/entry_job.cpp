@@ -26,6 +26,7 @@ namespace MyHttpd::MyDriver {
 
     void EntryJob::shutdown() noexcept {
         m_continue_flag.clear();
+        m_continue_flag.notify_all();
         m_entry = {};
     }
 }

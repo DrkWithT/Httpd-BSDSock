@@ -1,13 +1,20 @@
+#include <chrono>
+#include <print>
 #include <utility>
 #include "mydriver/worker_job.hpp"
 
 namespace MyHttpd::MyDriver {
     constexpr auto dud_task_fd = -1;
     constexpr auto default_connection_timeout = 10L;
+    constexpr auto default_task_consume_timeout = 11L;
     constexpr std::string_view dud_content = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head><body><p>Hello World!</p></body></html>";
 
     WorkerJob::WorkerJob(int wid, std::string_view server_name)
     : m_intake {}, m_outtake {}, m_server_name {server_name}, m_connection {}, m_wid {wid}, m_state {WorkerState::take_task}, m_conn_persist_flag {PersistFlag::unknown}, m_diagnosis {RequestDiagnosis::ok} {}
+
+    int WorkerJob::getID() const noexcept {
+        return m_wid;
+    }
 
     void WorkerJob::operator()(TaskQueue& tasks, std::condition_variable& task_cv, std::mutex& cv_mtx) {
         Utilities::GMTGen date_gen;
@@ -38,6 +45,7 @@ namespace MyHttpd::MyDriver {
                 stateReset();
                 break;
             case WorkerState::error:
+                stateError();
                 break;
             case WorkerState::halt:
             default:
@@ -77,7 +85,7 @@ namespace MyHttpd::MyDriver {
         {
             std::unique_lock cv_lock {cv_mtx};
 
-            task_cv.wait(cv_lock, [&]() {
+            task_cv.wait_for(cv_lock, std::chrono::seconds {default_task_consume_timeout}, [&]() {
                 return tasks.getCount() > 0;
             });
 
@@ -87,10 +95,13 @@ namespace MyHttpd::MyDriver {
         auto [temp_fd, temp_poisoned] = temp;
 
         if (temp_poisoned) {
+            std::print("[{} LOG]: worker {} recieved poison.\n", m_server_name, m_wid);
             transitionAnyway(WorkerState::halt);
         } else if (temp_fd == dud_task_fd) {
+            std::print("[{} LOG]: worker {} recieved dud task.\n", m_server_name, m_wid);
             transitionAnyway(WorkerState::take_task);
         } else {
+            std::print("[{} LOG]: worker {} recieved valid task.\n", m_server_name, m_wid);
             m_connection = {temp_fd, default_connection_timeout};
             transitionAnyway(WorkerState::request);
         }
@@ -218,6 +229,7 @@ namespace MyHttpd::MyDriver {
     }
 
     void WorkerJob::stateError() {
-        transitionAnyway(WorkerState::take_task);
+        std::print("[{} LOG]: worker {} encountered I/O interrupt.\n", m_server_name, m_wid);
+        transitionAnyway(WorkerState::reset);
     }
 }
