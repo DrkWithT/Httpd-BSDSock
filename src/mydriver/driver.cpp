@@ -8,8 +8,8 @@
 #include "mydriver/driver.hpp"
 
 namespace MyHttpd::MyDriver {
-    static constexpr std::string_view server_name = "myhttpd/0.1-dev";
-    static constexpr auto min_worker_n = 1;
+    constexpr std::string_view server_name = "myhttpd/0.1-dev";
+    constexpr auto min_worker_n = 1;
 
     ServerDriver::ServerDriver(ServerConfig config)
     : m_tasks {}, m_cv_mtx {}, m_task_cv {}, m_worker_n {(config.workers >= min_worker_n) ? config.workers : min_worker_n } {}
@@ -23,7 +23,11 @@ namespace MyHttpd::MyDriver {
         std::vector<std::thread> worker_thrds;
 
         std::thread entry_thrd {[&entry, this]() {
+            std::print("[{} LOG]: started producer...\n", server_name);
+
             entry(m_tasks, m_task_cv);
+
+            std::print("[{} LOG]: stopped producer.\n", server_name);
         }};
 
         for (auto worker_i = 0; worker_i < m_worker_n; worker_i++) {
@@ -46,6 +50,7 @@ namespace MyHttpd::MyDriver {
                 std::cin >> choice;
             } while (choice != 'y');
 
+            std::print("Stopping, please wait.\n");
             entry.shutdown();
         }};
 
