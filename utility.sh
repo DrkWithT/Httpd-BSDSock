@@ -1,7 +1,7 @@
 argc=$#
 
 show_usage() {
-    echo "usage: ./utility.sh [help | build]\n\tnote: build <preset> <gen-clangd-config>(1 or 0)";
+    echo "usage: ./utility.sh [help | build | test]\n\tnote: build <preset> <gen-clangd-config>(1 or 0)";
     exit $1
 }
 
@@ -11,14 +11,16 @@ fi
 
 choice="$1"
 
-if [[ "$choice" = "help" ]]; then
+if [[ $choice = "help" ]]; then
     show_usage 0
-elif [[ "$choice" = "build" && $argc -eq 3 ]]; then
+elif [[ $choice = "build" && $argc -eq 3 ]]; then
     cmake -S . -B build --preset $2 && cmake --build build;
 
     if [[ $3 -eq 1 ]]; then
         mv ./build/compile_commands.json .
     fi
+elif [[ $choice = "test" ]]; then
+    ./build/tests/test_url_parse
 else
     show_usage 1
 fi

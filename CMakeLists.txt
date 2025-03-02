@@ -12,3 +12,5 @@ set(MY_INCS "${CMAKE_CURRENT_SOURCE_DIR}/includes")
 set(MY_LIBS "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
 add_subdirectory(src)
+enable_testing()
+add_subdirectory(tests)
