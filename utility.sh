@@ -20,7 +20,7 @@ elif [[ $choice = "build" && $argc -eq 3 ]]; then
         mv ./build/compile_commands.json .
     fi
 elif [[ $choice = "test" ]]; then
-    ./build/tests/test_url_parse
+    ctest --test-dir build --timeout 2
 else
     show_usage 1
 fi
