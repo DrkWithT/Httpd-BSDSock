@@ -31,20 +31,13 @@ namespace MyHttpd::Utilities::Url {
 
         template <typename... Pack>
         [[maybe_unused]] bool consume() {
-            if (not atEnd()) {
-                m_previous = m_current;
-                m_current = advance();
-            }
-
+            m_previous = m_current;
+            m_current = advance();
             return true;
         }
 
         template <typename Tag, typename... Rest> requires (std::same_as<Tag, TokenTag>)
         [[maybe_unused]] bool consume(Tag tag, Rest... rest) noexcept {
-            if (atEnd()) {
-                return true;
-            }
-
             if (not match<TokenChoice::current>(tag, rest...)) {
                 return false;
             }
@@ -55,13 +48,18 @@ namespace MyHttpd::Utilities::Url {
             return true;
         }
 
-        [[nodiscard]] std::string_view parsePath() noexcept;
+        [[nodiscard]] std::string parsePath() noexcept;
         [[nodiscard]] QueryItem parseQueryItem() noexcept;
         [[nodiscard]] std::vector<QueryItem> parseQueryChain() noexcept;
 
     public:
         Parser(const std::string& source);
 
+        /**
+         * @brief Parses a subset of relative URIs tailored for HTTP messages.
+         * @example URI `/foo/bar?abc=123`
+         * @return URL 
+         */
         [[nodiscard]] URL parseAll() noexcept;
     };
 }

@@ -10,7 +10,7 @@ namespace MyHttpd::Utilities::Url {
         return m_lexer.lexNext();
     }
 
-    std::string_view Parser::parsePath() noexcept {
+    std::string Parser::parsePath() noexcept {
         if (not consume(TokenTag::path_split)) {
             return {};
         }
@@ -30,7 +30,7 @@ namespace MyHttpd::Utilities::Url {
                 break;
             }
 
-            path_length++;
+            ++path_length;
             consume();
 
             if (not match<TokenChoice::current>(TokenTag::wordy)) {
@@ -38,6 +38,7 @@ namespace MyHttpd::Utilities::Url {
             }
 
             path_length += m_current.length;
+            consume();
         }
 
         return m_lexer.viewSource().substr(path_start_pos, path_length);
@@ -54,7 +55,7 @@ namespace MyHttpd::Utilities::Url {
             return {key, Nil {}};
         }
 
-        auto source_view = m_lexer.viewSource();
+        const auto& source_view = m_lexer.viewSource();
 
         if (match<TokenChoice::current>(TokenTag::integral_num)) {
             consume();
@@ -96,6 +97,12 @@ namespace MyHttpd::Utilities::Url {
         }
 
         return items;
+    }
+
+    Parser::Parser(const std::string& source)
+    : m_lexer {source}, m_current {Token {.begin = 0, .length = 1, .tag = TokenTag::eos}}, m_previous {Token {.begin = 0, .length = 1, .tag = TokenTag::eos}} {
+        /// NOTE: go up to 1st token of relative URI so the parser doesn't fail right away!
+        consume();
     }
 
     URL Parser::parseAll() noexcept {

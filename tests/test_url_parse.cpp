@@ -20,8 +20,9 @@ int main() {
     URLParser demo2 {"/foo/bar"};
     auto result2 = demo2.parseAll();
 
-    if (result2.path != "/foo/bar") {
-        std::print(std::cerr, "Check 2 failed!");
+    /// TODO: this case fails... fix the parser
+    if (auto res2_path = result2.path; res2_path != "/foo/bar") {
+        std::print(std::cerr, "Check 2 failed, unexpected path of '{}'", res2_path);
         return 1;
     }
 
@@ -29,7 +30,7 @@ int main() {
     auto result3 = demo3.parseAll();
 
     if (auto result3_item1 = result3.query.at(0).value; result3.path != "/foo" or std::get<int>(result3_item1) != 42) {
-        std::print(std::cerr, "Check 3 failed!");
+        std::print(std::cerr, "Check 3 failed, unexpected path '{}'", result3.path);
         return 1;
     }
 
@@ -37,15 +38,15 @@ int main() {
     auto result4 = demo4.parseAll();
 
     if (auto result4_item1 = result4.query.at(0).value; result4.path != "/foo" or std::get<float>(result4_item1) != 3.1415f) {
-        std::print(std::cerr, "Check 4 failed!");
+        std::print(std::cerr, "Check 4 failed, unexpected path of '{}'", result4.path);
         return 1;
     }
 
     URLParser demo5 {"/foo?data=hello&answer=42"};
     auto result5 = demo5.parseAll();
 
-    if (result5.path != "/foo") {
-        std::print(std::cerr, "Check 5a failed!");
+    if (auto res5_path = result5.path; res5_path != "/foo") {
+        std::print(std::cerr, "Check 5a failed, unexpected path '{}'", res5_path);
         return 1;
     }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <string_view>
 #include <type_traits>
 
@@ -21,9 +22,9 @@ namespace MyHttpd::Utilities::Url {
         return c >= '0' and c <= '9';
     }
 
-    [[nodiscard]] constexpr bool matchOthers(char c) noexcept {
-        return matchDisjoints(c, ';', ':', '@', '&', '=');
-    }
+    // [[nodiscard]] constexpr bool matchOthers(char c) noexcept {
+    //     return matchDisjoints(c, ';', ':', '@', '&', '=');
+    // }
 
     [[nodiscard]] constexpr bool matchSafe(char c) noexcept {
         /// @note '.' is excluded despite RFC 1738; Sec. 5 requirements since path traversal is bad!
@@ -39,7 +40,7 @@ namespace MyHttpd::Utilities::Url {
     }
 
     [[nodiscard]] constexpr bool matchWordy(char c) noexcept {
-        return matchAlpha(c) or matchDigit(c) or matchSafe(c) or matchOthers(c);
+        return matchAlpha(c) or matchDigit(c) or matchSafe(c);
     }
 
     enum class TokenTag : unsigned char {
@@ -67,14 +68,14 @@ namespace MyHttpd::Utilities::Url {
             return source.substr(token.begin, token.length);
         }
 
-        friend std::string toFullString(const Token& token, const std::string_view source);
+        friend std::string toFullString(const Token& token, const std::string& source);
     };
 
     class Lexer {
     public:
         Lexer(const std::string& source) noexcept;
 
-        [[nodiscard]] std::string_view viewSource() const noexcept;
+        [[nodiscard]] const std::string& viewSource() const noexcept;
 
         [[nodiscard]] Token lexNext() noexcept;
         [[nodiscard]] Token lexSingle(TokenTag tag) noexcept;
@@ -84,7 +85,7 @@ namespace MyHttpd::Utilities::Url {
     private:
         [[nodiscard]] bool atEnd() const noexcept;
 
-        std::string_view m_source;
+        std::string m_source;
         int m_pos;
         int m_end;
     };

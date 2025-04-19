@@ -1,27 +1,14 @@
-#include <sstream>
 #include "utilities/url/lexing.hpp"
 
 namespace MyHttpd::Utilities::Url {
-    std::string toFullString(const Token& token, const std::string_view source) {
-        static std::ostringstream sout;
-
-        sout.str("");
-
-        auto lexeme_it = source.cbegin();
-        auto lexeme_end = lexeme_it + token.length;
-
-        for (; lexeme_it != lexeme_end; lexeme_it++) {
-            sout << *lexeme_it;
-        }
-
-        return sout.str();
+    std::string toFullString(const Token& token, const std::string& source) {
+        return source.substr(token.begin, token.length);
     }
-
 
     Lexer::Lexer(const std::string& source) noexcept
     : m_source {source}, m_pos {0}, m_end (source.size()) {}
 
-    std::string_view Lexer::viewSource() const noexcept {
+    const std::string& Lexer::viewSource() const noexcept {
         return m_source;
     }
 
@@ -45,12 +32,6 @@ namespace MyHttpd::Utilities::Url {
             return lexSingle(TokenTag::query_split);
         case '=':
             return lexSingle(TokenTag::query_assign);
-        case '\0':
-            return {
-                .begin = m_pos,
-                .length = 1,
-                .tag = TokenTag::eos
-            };
         default:
             break;
         }
@@ -61,11 +42,7 @@ namespace MyHttpd::Utilities::Url {
             return lexWordy();
         }
 
-        return {
-            .begin = m_pos++,
-            .length = 1,
-            .tag = TokenTag::unknown
-        };
+        return lexSingle(TokenTag::unknown);
     }
 
     Token Lexer::lexSingle(TokenTag tag) noexcept {
